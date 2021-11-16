@@ -1,0 +1,288 @@
+
+
+#plt.plot(npmean1, '--')
+
+
+#plt.title("All Runs; World state 2; Neuron 1 vs all others")
+#plt.plot(rhos[:, 2, 1, :]); plt.show()
+#plt.plot(rhos[:, 2, 0, :])
+#plt.plot(rhos[:, 0, 4, 1])
+#plt.plot(rhos[14, 1, 4, :])
+
+#plt.plot(rhos[14, :, 0, 1])
+#plt.plot(rhos[14, :, 0, 2])
+#plt.plot(rhos[14, :, 0, 3])
+
+
+
+# npmean1 = np.mean(rhos[:, :, 0, 1], axis=1)
+# ncov = np.cov(rhos[:,:,0,1])
+# print("np.mean = ", npmean)
+# print("np.cov = ", ncov)
+#
+# errx = rhos[:, :, 0, 1]
+# erry = errx
+# plt.errorbar(errx, erry, yerr=npmean, fmt='+')
+# plt.plot(rhos[1, :, 0, 1])
+# plt.plot(rhos[2, :, 0, 1])
+# plt.plot(rhos[3, :, 0, 1])
+# plt.plot(rhos[4, :, 0, 1])
+# plt.plot(rhos[5, :, 0, 1])
+# plt.plot(rhos[6, :, 0, 1])
+# plt.plot(rhos[7, :, 0, 1])
+# plt.plot(rhos[8, :, 0, 1])
+# plt.plot(rhos[9, :, 0, 1])
+# plt.plot(rhos[10, :, 0, 1])
+# plt.plot(rhos[11, :, 0, 1])
+# plt.plot(rhos[12, :, 0, 1])
+# plt.plot(rhos[13, :, 0, 1])
+# plt.plot(rhos[14, :, 0, 1])
+# plt.plot(rhos[15, :, 0, 1])
+# plt.plot(rhos[16, :, 0, 1])
+# plt.plot(rhos[17, :, 0, 1])
+# plt.plot(rhos[18, :, 0, 1])
+# plt.plot(rhos[19, :, 0, 1])
+# plt.plot(rhos[20, :, 0, 1])
+# plt.plot(rhos[21, :, 0, 1])
+
+import os
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.stats import multivariate_normal
+
+
+# extract variables from last episode (last update step)
+def extract(path, file_names):
+    I_W_A = []
+    eus = []
+    rhos = []
+    x_means = []
+    I_X_A = []
+    betas = []
+    pxw_means = []
+    pxw_sigmas = []
+    for file in range(len(file_names)):
+        # print("load file number:", file)
+        with open(os.path.join(path, file_names[file]), 'rb') as handle:
+            storage = pickle.load(handle)
+            x_means.append([int(x) for x in storage.x_means])
+            I_W_A.append(storage.dkl_w_e[-1])
+            I_X_A.append(storage.I_X_A_e[-1])
+            eus.append(storage.exp_u_e[-1])
+            rhos.append(storage.rhos_e[-1])
+            betas.append(storage.betas)
+            pxw_means.append(storage.pxw_means_e[-1])
+            pxw_sigmas.append(storage.pxw_sigmas_e[-1])
+
+    x_means = np.array(x_means)
+    I_W_A = np.array(I_W_A)
+    I_X_A = np.array(I_X_A)
+    eus = np.array(eus)
+    rhos = np.array(rhos)
+    betas = np.array(betas)
+    pxw_sigmas = np.array(pxw_sigmas)
+    pxw_means = np.array(pxw_means)
+    return x_means, betas, I_W_A, I_X_A, rhos, eus, pxw_sigmas, pxw_means
+
+
+# extract rhos from all episodes (full update process) e is episode
+def extract_rhos_e(path, file_names):
+    rhos = []
+    for file in range(len(file_names)):
+        print("load file number:", file)
+        with open(os.path.join(path, file_names[file]), 'rb') as handle:
+            storage = pickle.load(handle)
+            rhos.append(storage.rhos_e)
+    rhos = np.array(rhos)
+    return rhos
+
+
+# EXAMPLE
+path = os.path.join('F:/SerialCase_NoiseCorrelationGD/results',
+                    'test')  # path to subdirectory 'test' in result-folder (=foldername in "serial_gradient.py")
+file_names = [f for f in os.listdir(path)]
+
+x_means, betas, I_W_A, I_X_A, rhos, eus, pxw_sigmas, pxw_means = extract(path, file_names)
+rhos_e = extract_rhos_e(path, file_names)
+
+x_size = 8
+
+
+def covariance(rhos, sigmas, w):
+    cov = np.einsum('i,j,ij->ij', sigmas[w], sigmas[w], rhos[w] + np.eye(x_size))
+    return cov
+
+
+# initialize mock rho values
+#mockrhos = np.full((44, 8, 8, 8), np.random.randint(2, 20))
+
+#mockrhos = np.random.randint(-1, 1, (44, 8, 8, 8))
+mockrhos = np.random.randint(-1, 1, 5)
+mockrhos_negative = np.negative(mockrhos)
+print("mockarray neg", mockrhos_negative)
+
+rhos = mockrhos
+
+print("mockarray", mockrhos)
+
+number_runs = range(np.size(rhos, 0))
+world_states = range(np.size(rhos, 1))
+
+plt.plot(rhos[1, :, 0, 1])
+plt.plot(rhos[1, :, 0, 2])
+plt.title("two neurons mock rhos")
+plt.show()
+
+print("Rhos shape", np.shape(rhos))
+print("Rhos 14 0 1", rhos[14, :, 0, 1])
+plt.plot(rhos[1, :, 0, 1])
+plt.plot(rhos[1, :, 0, 2])
+plt.plot(rhos[1, :, 0, 3])
+plt.plot(rhos[1, :, 0, 4])
+plt.plot(rhos[1, :, 0, 5])
+plt.plot(rhos[1, :, 0, 6])
+plt.plot(rhos[1, :, 0, 7])
+
+plt.title("Comparing Rhos : Run 1; N0 vs all")
+
+plt.show()
+
+npmean = np.mean(rhos[:, :, 0, 1:7], axis=2)  # averaging over the all pairs of neurons with N0
+meanoverruns = np.mean(npmean, axis=0)
+print(np.size(meanoverruns))
+npstd = np.std(npmean, axis=0)  # standard error of mean formula
+
+sem = npstd / (np.sqrt(len(npmean)))
+xs = range(8)
+
+plt.plot(xs, meanoverruns)
+plt.errorbar(xs, meanoverruns, sem)
+plt.title("Errorbar - All pairs of N0")
+plt.show()
+
+plt.plot(npmean)
+#Splt.plot(npstd)
+plt.title("Comparing Rhos : Run 1 to 12; N0 vs N1")
+
+plt.show()
+
+# get covariances
+cov_matrices = []
+for x in number_runs:
+    cov_matrices_run = []
+    for y in world_states:
+        # print(np.shape(rhos[x]))
+        # print(np.shape(pxw_sigmas[x]))
+        cov_matrices_run.append(covariance(rhos[x, :, :], pxw_sigmas[x, :, :], y))
+    cov_matrices.append(np.array(cov_matrices_run))
+cov_matrices = np.array(cov_matrices)
+print(np.shape(cov_matrices))
+
+# sample from pxw
+listbyruns = []
+for x in number_runs:
+    sample_B = []  # samples for all worldstates
+    std_dev = []
+    nmean = []
+    for y in world_states:
+        sample_A = multivariate_normal.rvs(mean=pxw_means[x, y, :], cov=cov_matrices[x, y, :, :],
+                                           size=100)  # samples from single w
+        std_dev_values = np.std(sample_A)
+        nmean_values = np.mean(sample_A)
+        # plt.scatter(sample_A[:, 2], sample_A[:, 3], color=next(colors))
+        # print(np.shape(sample_B))
+        sample_B.append(sample_A)
+        nmean.append(nmean_values)
+        std_dev.append(std_dev_values)
+    listbyruns.append(np.array(sample_B))
+    print("listbyruns", np.shape(listbyruns))
+
+from matplotlib import cm
+
+print(np.shape(listbyruns))
+sample_B = np.array(sample_B)
+listbyruns = np.array(listbyruns)
+print(np.shape(sample_B))
+print("standard deviation", std_dev)
+print("mean", nmean)
+plt.scatter(listbyruns[1, 0, :, 0], listbyruns[1, 0, :, 1], edgecolors="black", color='red', label="W1")
+plt.scatter(listbyruns[1, 1, :, 0], listbyruns[1, 1, :, 1], edgecolors="black", color='green', label="W2")
+plt.scatter(listbyruns[1, 2, :, 0], listbyruns[1, 2, :, 1], edgecolors="black", color='violet', label="W3")
+plt.scatter(listbyruns[1, 3, :, 0], listbyruns[1, 3, :, 1], edgecolors="black", color='indigo', label="W4")
+plt.scatter(listbyruns[1, 4, :, 0], listbyruns[1, 4, :, 1], edgecolors="black", color='cyan', label="W5")
+plt.scatter(listbyruns[1, 5, :, 0], listbyruns[1, 5, :, 1], edgecolors="black", color='brown', label="W6")
+plt.scatter(listbyruns[1, 6, :, 0], listbyruns[1, 6, :, 1], edgecolors="black", color='orange', label="W7")
+plt.scatter(listbyruns[1, 7, :, 0], listbyruns[1, 7, :, 1], edgecolors="black", color='yellow', label="W8")
+
+plt.xlabel("Neuron 0")
+plt.ylabel("Neuron 1")
+plt.legend()
+plt.title("Multivariate Normal - Run 1, N1 to N7 vs (all?) W1 - W2 ")
+plt.show()
+
+# plt.scatter(listbyruns[1, :, 1, 0], listbyruns[1, :, 1, 1], edgecolors="black", color='red', label="W1")
+# plt.scatter(listbyruns[1, :, 2, 0], listbyruns[1, :, 2, 1], edgecolors="black", color='green', label="W2")
+# plt.scatter(listbyruns[1, :, 3, 0], listbyruns[1, :, 3, 1], edgecolors="black", color='violet', label="W3")
+# plt.scatter(listbyruns[1, :, 4, 0], listbyruns[1, :, 4, 1], edgecolors="black", color='indigo', label="W4")
+# plt.scatter(listbyruns[1, :, 5, 0], listbyruns[1, :, 5, 1], edgecolors="black", color='cyan', label="W5")
+# plt.scatter(listbyruns[1, :, 6, 0], listbyruns[1, :, 6, 1], edgecolors="black", color='brown', label="W6")
+# plt.scatter(listbyruns[1, :, 7, 0], listbyruns[1, :, 7, 1], edgecolors="black", color='orange', label="W7")
+# #plt.scatter(listbyruns[1, 0, :, 0], listbyruns[1, 7, :, 1], edgecolors="black", color='yellow', label="W8")
+# plt.legend()
+# plt.title("Multivariate Normal - Run 1, N(all) vs N1 to 7 W0 - W1?")
+# plt.show(False)
+
+
+# try to write a function for plotting multivariate normals:
+
+# 3 variables have to be constant in each loop
+
+
+executerun = int(input("Enter first Execution Run number:"))
+worldst = input("Enter first world state:")
+neuron11 = int(input("Enter Left Neuron 1:"))
+neuron12 = int(input("Enter Left Neuron 2:"))
+
+executerun2 = int(input("Enter a second Execution Run number:"))
+worldst2 = input("Enter a second world state:")
+neuron21 = int(input("Enter Right Neuron 1:"))
+neuron22 = int(input("Enter Right Neuron 2:"))
+
+if executerun2 == ':':
+    while executerun2 <= 7:
+        plt.scatter(listbyruns[int(executerun), int(worldst), int(neuron11), int(neuron12)],
+                    listbyruns[int(executerun2), int(worldst2), int(neuron21), int(neuron22)])
+        executerun2 = executerun2 + 1
+
+if worldst == ":":
+    while neuron11 <= 7:
+        while neuron21 <= 7:
+            plt.scatter(listbyruns[int(executerun), worldst, int(neuron11), int(neuron12)],
+                        listbyruns[int(executerun2), worldst2, int(neuron21), int(neuron22)])
+        neuron11 = neuron11 + 1
+        neuron21 = neuron21 + 1
+
+# if worldst and worldst2 == ":":
+
+# if executerun and executerun2 == ":":
+
+
+if neuron12 == neuron22:
+    while neuron11 and neuron21 <= 7:
+        plt.scatter(listbyruns[int(executerun), worldst, int(neuron11), int(neuron12)],
+                    listbyruns[int(executerun2), worldst2, int(neuron21), int(neuron22)])
+    neuron11 = neuron11 + 1
+    neuron21 = neuron21 + 1
+
+if neuron11 == neuron21:
+    while neuron12 and neuron22 <= 7:
+        plt.scatter(listbyruns[int(executerun), worldst, int(neuron11), int(neuron12)],
+                    listbyruns[int(executerun2), worldst2, int(neuron21), int(neuron22)])
+    neuron12 = neuron12 + 1
+    neuron22 = neuron22 + 1
+
+plt.show()
+#  plt.scatter(listbyruns[int(executerun), int(worldst), int(neuron11), int(neuron12)], listbyruns[int(executerun2), int(worldst2), int(neuron21), int(neuron22)]) # ( , edgecolors="black", color='red', label="W1")
+# plt.show()
